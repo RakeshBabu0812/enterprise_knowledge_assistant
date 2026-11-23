@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ConversationMessage;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ConversationSummary;
+import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.PagedResponse;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.service.ChatService;
 
 @RestController
@@ -37,10 +39,21 @@ public class ConversationController {
 	}
 	
 	@GetMapping
-	public List<ConversationSummary> getAllConversations(){
+	public ResponseEntity<PagedResponse<ConversationSummary>> getAllConversations(@RequestParam(defaultValue="0") int page,
+			                                           @RequestParam(defaultValue="10") int size){
+		
+		if(page<0  || size<=0  || size>100) {
+			
+			return ResponseEntity.badRequest().build();
+			
+			
+		}
 		
 		
-		return chatService.getAllConversations();
+		return ResponseEntity.ok(
+				chatService.getAllConversations(page,size)
+				);
+		
 		
 	}
 	

@@ -1,0 +1,17 @@
+package com.telusko.rag.EnterpriseKnowledgeAssistant.dto;
+
+import java.util.List;
+
+public record PagedResponse<T>(
+		List<T> content,
+		int page,
+		int size,
+		long totalElements,
+		int totalPages,
+		boolean hasNext,
+		boolean hasPrevious
+		
+		
+		) {
+
+}

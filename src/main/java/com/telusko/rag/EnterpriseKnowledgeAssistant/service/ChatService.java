@@ -26,6 +26,7 @@ import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ChatResponse.ResponseSta
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ChatResponse.SourceCitation;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ConversationMessage;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ConversationSummary;
+import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.PagedResponse;
 
 @Service
 public class ChatService {
@@ -297,7 +298,7 @@ public class ChatService {
 	}
 	
 	
-	public List<ConversationSummary> getAllConversations(){
+	public PagedResponse<ConversationSummary> getAllConversations(int page,int size){
 		
 		
 		
@@ -330,12 +331,31 @@ public class ChatService {
 			  LEFT JOIN 
 			  first_messages fm
 			  ON cs.conversation_id=fm.conversation_id
-			 ORDER BY cs.last_activity DESC
+			 ORDER BY cs.last_activity DESC,cs.conversation_id
+			 LIMIT ? OFFSET ?
 			
 			""";
 		
 	
-	return jdbcTemplate.query(sql,
+	long totalElements=jdbcTemplate.queryForObject(
+			
+			"""
+			SELECT COUNT(DISTINCT conversation_id)
+			FROM spring_ai_chat_memory
+			
+			""",
+			Long.class
+			
+			);
+	
+	long offset=(long) page*size;
+	
+	
+	
+	
+	
+	
+	List<ConversationSummary> conversations=jdbcTemplate.query(sql,
 			
 			 (rs,rowNum)->
 	                  
@@ -345,10 +365,28 @@ public class ChatService {
 	                		rs.getTimestamp("last_activity").toLocalDateTime(),
 	                		rs.getLong("message_count")
 	                	
-	                		)
+	                		),
+	                size,
+	                  offset
 			
 			
 			);
+	
+	int totalPages=(int)Math.ceil((double)totalElements/size);
+	
+	
+	return new PagedResponse<>(
+			conversations,
+			page,
+			size,
+			totalElements,
+			totalPages,
+			page < totalPages-1,
+			page>0 && totalElements>0
+			
+			
+			);	
+	
 		
 		
 		
