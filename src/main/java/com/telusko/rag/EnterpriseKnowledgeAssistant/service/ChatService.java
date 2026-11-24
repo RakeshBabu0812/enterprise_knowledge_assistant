@@ -161,6 +161,10 @@ public class ChatService {
 	public ChatResponse ask(String question,UUID documentid,UUID conversationId) {
 		
 		
+		createConversation(conversationId,question);
+		
+		
+		
 		var promptSpec=chatClient.prompt()
 				            .system("""
 			                You are an enterprise knowledge assistant.
@@ -303,36 +307,23 @@ public class ChatService {
 		
 		
 	String sql="""
-			
-			WITH conversation_stats AS(
-			
-			SELECT conversation_id,
-			        MAX(timestamp) AS last_activity,
-			        COUNT(*) AS message_count
-			 FROM spring_ai_chat_memory
-			 GROUP BY conversation_id
-			),
-			first_messages AS(
-			
-			SELECT DISTINCT ON(conversation_id)
-			           conversation_id,
-			            content AS title
-			   FROM spring_ai_chat_memory
-			      WHERE type='USER'
-			    ORDER BY conversation_id,sequence_id ASC
-			      )
-			      
-			  SELECT 
-			     cs.conversation_id,
-			     fm.title,
-			     cs.last_activity,
-			     cs.message_count
-			  FROM conversation_stats cs
-			  LEFT JOIN 
-			  first_messages fm
-			  ON cs.conversation_id=fm.conversation_id
-			 ORDER BY cs.last_activity DESC,cs.conversation_id
-			 LIMIT ? OFFSET ?
+			SELECT
+        c.conversation_id,
+        c.title,
+        c.created_at,
+        c.updated_at AS last_activity,
+        COUNT(m.conversation_id) AS message_count
+    FROM conversations c
+    LEFT JOIN spring_ai_chat_memory m
+        ON m.conversation_id = c.conversation_id::text
+    GROUP BY
+        c.conversation_id,
+        c.title,
+        c.created_at,
+        c.updated_at
+    ORDER BY c.updated_at DESC, c.conversation_id
+    LIMIT ? OFFSET ?
+		
 			
 			""";
 		
@@ -417,6 +408,51 @@ public class ChatService {
 		
 	}
 	
+	public void createConversation(UUID conversationId,String question) {
+		
+		String title=question.length()>255?question.substring(0,252)+"...":question;
+		
+		
+		jdbcTemplate.update(
+				
+				"""
+				
+				INSERT INTO conversations(conversation_id,title)
+				    VALUES(?,?)
+				    ON CONFLICT(conversation_id)
+				     DO UPDATE SET
+				          updated_at=CURRENT_TIMESTAMP
+				                      
+				""",
+				conversationId,
+				title	
+				);
+		
+		
+		
+		
+		
+	}
+	
+	public boolean renameConversation(UUID conversationId,String title) {
+		
+		int updated=jdbcTemplate.update("""
+				
+				 UPDATE conversations 
+				 SET title=?,
+				 updated_at=CURRENT_TIMESTAMP
+				 WHERE conversation_id=?
+				 
+				""",
+				title.trim(),
+				conversationId
+				);
+		
+		return updated>0;
+		
+		
+		
+	}
 	
 	
 

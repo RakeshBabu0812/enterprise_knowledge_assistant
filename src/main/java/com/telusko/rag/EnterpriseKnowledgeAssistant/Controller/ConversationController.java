@@ -6,7 +6,9 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ConversationMessage;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ConversationSummary;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.PagedResponse;
+import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.RenameConversationRequest;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.service.ChatService;
 
 @RestController
@@ -70,10 +73,32 @@ public class ConversationController {
 		}
 		
 		return ResponseEntity.noContent().build();
+	
+	}
+	
+	
+	@PatchMapping("/{conversationId}/title")
+	public ResponseEntity<Void> renameConversation(
+			
+			@PathVariable UUID conversationId,
+			@RequestBody RenameConversationRequest request
+			
+			){
 		
 		
+		if(request.title()==null || request.title().isBlank() || request.title().length()>255) {
+			
+			return ResponseEntity.badRequest().build();
+			
+		}
 		
+		boolean updated=chatService.renameConversation(conversationId,request.title());
 		
+		if(!updated) {
+			return ResponseEntity.notFound().build();
+		}
+		
+		return ResponseEntity.noContent().build();
 		
 		
 		
