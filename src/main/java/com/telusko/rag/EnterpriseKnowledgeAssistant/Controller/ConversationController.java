@@ -43,7 +43,8 @@ public class ConversationController {
 	
 	@GetMapping
 	public ResponseEntity<PagedResponse<ConversationSummary>> getAllConversations(@RequestParam(defaultValue="0") int page,
-			                                           @RequestParam(defaultValue="10") int size){
+			                                           @RequestParam(defaultValue="10") int size,
+			                                           @RequestParam(required=false) String search ){
 		
 		if(page<0  || size<=0  || size>100) {
 			
@@ -54,7 +55,7 @@ public class ConversationController {
 		
 		
 		return ResponseEntity.ok(
-				chatService.getAllConversations(page,size)
+				chatService.getAllConversations(page,size,search)
 				);
 		
 		
