@@ -20,6 +20,7 @@ import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ChatResponse;
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.ChatResponse.ResponseStatus;
@@ -387,30 +388,40 @@ public class ChatService {
 	}
 	
 	
+	@Transactional
 	public boolean deleteConversation(UUID conversationId) {
 		
 		
-		List<Message> messages=chatMemoryRepository.findByConversationId(conversationId.toString());
 		
+		int deleted=jdbcTemplate.update("""
+				
+				     	DELETE FROM conversations WHERE conversation_id=?
+				
+				""",conversationId);
 		
-		if(messages.isEmpty()) {
+		if(deleted==0) {
 			return false;
 		}
-	
-		chatMemoryRepository.deleteByConversationId(conversationId.toString());
 		
+		jdbcTemplate.update(
+				"""
+				
+				DELETE FROM spring_ai_chat_memory WHERE conversation_id=?
+				""",
+				conversationId.toString()
+				
+				);
 		
 		return true;
 		
-		
-		
-		
+	
 		
 	}
 	
 	public void createConversation(UUID conversationId,String question) {
 		
 		String title=question.length()>255?question.substring(0,252)+"...":question;
+	
 		
 		
 		jdbcTemplate.update(
