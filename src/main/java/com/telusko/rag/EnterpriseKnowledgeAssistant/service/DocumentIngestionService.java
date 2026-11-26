@@ -1,6 +1,7 @@
 package com.telusko.rag.EnterpriseKnowledgeAssistant.service;
 
 import java.security.MessageDigest;
+import java.sql.PreparedStatement;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -20,6 +21,7 @@ import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.DocumentInfo;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.ConnectionCallback;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import jakarta.annotation.PostConstruct;
@@ -198,9 +200,39 @@ public class DocumentIngestionService {
 	public UUID ingestPdf(Resource resource,String fileName) {
 		
 		 
-
-		
+    	
 		log.info("Starting PDF ingestion...");
+		
+		log.info("Waiting for ingestion lock: {}", fileName);
+		
+		
+		jdbcTemplate.execute((ConnectionCallback<Void>) connection->{
+			                    
+			              try(PreparedStatement statement
+			            		    =connection.prepareStatement(
+			            		    		"SELECT pg_advisory_xact_lock(hashtextextended(?,0))"
+			            		    		)
+			            		
+			            		   ){
+			            	  
+			            	   statement.setString(1,fileName);
+			            	   
+			            	  statement.execute();
+
+			            	  
+			              }
+			              return null;
+			
+			
+			
+			
+		                               }
+		
+				
+				
+				
+				);
+		log.info("Acquired ingestion lock: {}", fileName);
 		
 		/*
 		Long existingchunks=jdbcTemplate.queryForObject(
