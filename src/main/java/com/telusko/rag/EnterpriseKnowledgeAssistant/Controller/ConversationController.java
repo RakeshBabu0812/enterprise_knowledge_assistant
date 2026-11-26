@@ -101,7 +101,35 @@ public class ConversationController {
 		
 		return ResponseEntity.noContent().build();
 		
+	
+	}
+	
+	
+	
+	@PatchMapping("/{conversationId}/archive")
+	public ResponseEntity<Void> archiveConversation(@PathVariable UUID conversationId){
 		
+		boolean archived=chatService.archiveConversation(conversationId);
+		
+		if(!archived) {
+			return ResponseEntity.notFound().build();
+		}
+		
+		return ResponseEntity.noContent().build();
+		
+	
+	}
+	
+	@PatchMapping("/{conversationId}/restore")
+	public ResponseEntity<Void> restoreConversation(@PathVariable UUID conversationId){
+		
+		
+		boolean restored=chatService.restoreConversation(conversationId);
+		
+		if(!restored) {
+			return ResponseEntity.notFound().build();
+		}
+		return ResponseEntity.noContent().build();
 		
 		
 		

@@ -489,6 +489,45 @@ public class ChatService {
 		
 	}
 	
+	public boolean archiveConversation(UUID conversationId) {
+		
+		int updated=jdbcTemplate.update(
+				"""
+				UPDATE conversations 
+				SET archived=TRUE, 
+				     updated_at=CURRENT_TIMESTAMP
+				WHERE conversation_id=? AND archived=FALSE
+				
+				""",
+				conversationId
+				
+				
+				);   
+		
+	     return updated>0;
+	     
+		
+		
+		
+	}
+	
+	
+	public boolean restoreConversation(UUID conversationId) {
+		
+		int updated=jdbcTemplate.update("""
+				
+				UPDATE conversations
+				   SET archived=FALSE,
+				    updated_at=CURRENT_TIMESTAMP
+				 WHERE conversation_id=? AND archived=TRUE				
+				""",conversationId);
+		
+		
+		return updated>0;
+
+	
+	}
+	
 	
 
 	
