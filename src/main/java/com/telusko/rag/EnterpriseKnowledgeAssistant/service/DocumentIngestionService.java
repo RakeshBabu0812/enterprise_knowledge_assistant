@@ -14,6 +14,7 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.telusko.rag.EnterpriseKnowledgeAssistant.dto.DocumentInfo;
 
@@ -181,19 +182,19 @@ public class DocumentIngestionService {
 	}
 	
 	
-	@PostConstruct
-	public void loadDocument() {
+	//@PostConstruct
+	//public void loadDocument() {
 		
-		Resource resource=new ClassPathResource("docs/employee-policy.pdf");
+//	Resource resource=new ClassPathResource("docs/employee-policy.pdf");
 		
-		ingestPdf(resource,"employee-policy.pdf");
+//ingestPdf(resource,"employee-policy.pdf");
 		
 		
-	}
+//}
 	
 	
 	
-
+    @Transactional
 	public UUID ingestPdf(Resource resource,String fileName) {
 		
 		 
@@ -278,6 +279,8 @@ public class DocumentIngestionService {
 				if(chunks.isEmpty()) {
 					
 					throw new IllegalStateException("No chunks were generated from the PDF.");
+					
+					
 				}
 				
 				
@@ -295,10 +298,16 @@ public class DocumentIngestionService {
 				log.info("Generated {} chunks for {}", chunks.size(),fileName);
 				
 				if(!existing.isEmpty()) {
-			
+				
 			   vectorStore.delete("document_id =='"+documentId+"'");
 			   
+		   
+			 
+			  
+			   
 				}
+				
+			
 				
 				vectorStore.add(chunks);
 				
