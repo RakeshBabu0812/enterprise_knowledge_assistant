@@ -303,7 +303,8 @@ public class ChatService {
 	}
 	
 	
-	public PagedResponse<ConversationSummary> getAllConversations(int page,int size,String search){
+	public PagedResponse<ConversationSummary> getAllConversations(int page,int size,String search,
+			                                                              boolean archived){
 		
 		
 		long offset=(long) page*size;
@@ -311,81 +312,70 @@ public class ChatService {
 		
 		String searchTerm=(search==null || search.isBlank())?null:"%"+search.trim().toLowerCase()+"%";
 		
-		String whereClause= searchTerm==null?"":" WHERE LOWER(title) LIKE ? ";
+		String whereClause= searchTerm==null?" WHERE archived=? ":
+			                           " WHERE archived=? AND LOWER(title) LIKE ? ";
 		
 		
 		String countSql="""
 				SELECT COUNT(*) FROM conversations				
 				"""+whereClause;
 		
-		Long totalElements=searchTerm==null?jdbcTemplate.queryForObject(countSql, Long.class): 
-			                                jdbcTemplate.queryForObject(countSql,Long.class,searchTerm);
-		
+	
 		
 		
 	String sql="""
 			SELECT
         c.conversation_id,
         c.title,
-        c.created_at,
         c.updated_at AS last_activity,
         COUNT(m.conversation_id) AS message_count
     FROM conversations c
     LEFT JOIN spring_ai_chat_memory m
         ON m.conversation_id = c.conversation_id::text
        """ +
-        (searchTerm==null?"":" WHERE LOWER(c.title) LIKE ? ")
+        (searchTerm==null?
+        		"WHERE c.archived=? ":
+        			" WHERE c.archived=? AND LOWER(c.title) LIKE ? ")
        +
        """
     GROUP BY
         c.conversation_id,
         c.title,
-        c.created_at,
         c.updated_at
     ORDER BY c.updated_at DESC, c.conversation_id
     LIMIT ? OFFSET ?			
 			""";
 	
 	
+	List<Object> params=new ArrayList<>();
 	
-	List<ConversationSummary> conversations;
+	params.add(archived);
 	
-	if(searchTerm==null) {
-		conversations=jdbcTemplate.query(sql,
-				(rs,rowNum)->
-		                    new ConversationSummary(
-		                    		
-		                    		UUID.fromString(rs.getString("conversation_id")),
-		                    		rs.getString("title"),
-		                    		rs.getTimestamp("last_activity").toLocalDateTime(),
-		                    		rs.getLong("message_count")
-		                       ),
-		                    size,
-		                    offset
-		                   
-				);
-		
-		
-		
+	if(searchTerm!=null) {
+		params.add(searchTerm);
 	}
-	else {
-		
-		conversations=jdbcTemplate.query(sql,
-				
-				(rs,rowNum)-> new ConversationSummary(
-						
-						   UUID.fromString(rs.getString("conversation_id")),
-						   rs.getString("title"),
-						   rs.getTimestamp("last_activity").toLocalDateTime(),
-						   rs.getLong("message_count")
-						  
-						),
-				searchTerm,size,offset
-				
-				);
+	
+	Long totalElements=jdbcTemplate.queryForObject(countSql, Long.class,params.toArray());
+	
+	
+	List<Object> queryParams=new ArrayList<>(params);
+	
+	queryParams.add(size);
+	
+	queryParams.add(offset);
+	
 
-
-	}
+	List<ConversationSummary> conversations=jdbcTemplate.query(sql,
+			
+			  (rs,rowNum)-> new ConversationSummary(
+					  UUID.fromString(rs.getString("conversation_id")),
+					  rs.getString("title"),
+					  rs.getTimestamp("last_activity").toLocalDateTime(),
+					  rs.getLong("message_count")
+					  ),
+			     queryParams.toArray()
+			
+			);
 	
 	
 	int totalPages=(int)Math.ceil((double)totalElements/size);
